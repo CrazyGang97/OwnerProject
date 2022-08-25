@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,15 +14,22 @@ import (
 	"time"
 	"unsafe"
 
+	"code.byted.org/webcast/wccclient/impl/loader/wcc"
+
 	"code.byted.org/webcast/rpcv2_webcast_platform_wcc/kitex_gen/webcast/platform_wcc"
+	"code.byted.org/webcast/wccclient"
 )
+
+var ctx = context.Background()
 
 const (
 	DefaultDomain     string = "https://webcast-arch.byted.org"
 	OPERATOR          string = "donggang.crazy"
 	ServiceId         int64  = 19
 	NamespaceIDNorm   int64  = 40
+	NamespaceIDBig    int64  = 41
 	NamespaceNameNorm string = "normal_space"
+	NamespaceNameBig  string = "big_value_space"
 )
 
 type CreateConfigRequest struct {
@@ -40,6 +48,19 @@ type ConfigMeta struct {
 	Type        platform_wcc.ConfigType
 	NamespaceID int64
 	SchemaID    int64
+}
+
+func Test_Get(t *testing.T) {
+	wccClient := wccclient.New(
+		ctx,
+		wcc.NewLoader(
+			"webcast.wcc.gangtest4",
+			"gang_table_test1"))
+	val, err := wccClient.Get(ctx, "gang_table_test1_396802")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	fmt.Println(val)
 }
 
 func Test_CreateConfig(t *testing.T) {
@@ -305,13 +326,12 @@ func createConfig(key string, namespaceID int64) (err error) {
 		}
 	}(response.Body)
 
-	responseBody, err := ioutil.ReadAll(response.Body)
+	_, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Printf("%+v", err)
 		return err
 	}
 	fmt.Println(response)
-	fmt.Println(responseBody)
 	return
 }
 
@@ -373,18 +393,17 @@ func insertNormal(key string, value string, namespace string) (err error) {
 		}
 	}(response.Body)
 
-	responseBody, err := ioutil.ReadAll(response.Body)
+	_, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Printf("%+v", err)
 		return err
 	}
 	fmt.Println(response)
-	fmt.Println(responseBody)
 	return
 }
 
 func Producer(indexChan chan int) {
-	for i := 10; i < 100; i++ {
+	for i := 10; i < 20; i++ {
 		indexChan <- i
 		fmt.Printf("index = %d \n", i)
 	}
@@ -395,19 +414,19 @@ func Consumer(indexChan chan int, done chan bool) {
 	for {
 		i, ok := <-indexChan
 		if ok {
-			key := "normalKey" + strconv.Itoa(i)
-			err := createConfig(key, NamespaceIDNorm)
+			key := "bigKey" + strconv.Itoa(i)
+			err := createConfig(key, NamespaceIDBig)
 			if err != nil {
 				fmt.Printf("%+v", err)
 				return
 			}
 			time.Sleep(2 * time.Second)
-			err = insertNormal(key, randStr(10), NamespaceNameNorm)
+			err = insertNormal(key, randStr(1024*1024), NamespaceNameBig)
 			if err != nil {
 				fmt.Printf("%+v", err)
 				return
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 
 		} else {
 			fmt.Println("closed...")
@@ -419,8 +438,8 @@ func Consumer(indexChan chan int, done chan bool) {
 
 func Test_InsertNorm(t *testing.T) {
 
-	indexChan := make(chan int, 50)
-	num := 10
+	indexChan := make(chan int, 5)
+	num := 2
 	done := make(chan bool, num)
 
 	go Producer(indexChan)
@@ -433,19 +452,6 @@ func Test_InsertNorm(t *testing.T) {
 		<-done
 	}
 
-	for i := 0; i < 10; i++ {
-		key := "normalKey" + strconv.Itoa(i)
-		err := createConfig(key, NamespaceIDNorm)
-		if err != nil {
-			t.Fatalf("%+v", err)
-		}
-		time.Sleep(2 * time.Second)
-		err = insertNormal(key, randStr(10), NamespaceNameNorm)
-		if err != nil {
-			t.Fatalf("%+v", err)
-		}
-		time.Sleep(2 * time.Second)
-	}
 }
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -475,4 +481,10 @@ func randStr(n int) string {
 		remain--
 	}
 	return *(*string)(unsafe.Pointer(&b))
+}
+
+func getAssignRandBytes(n int64) []byte {
+	res := make([]byte, n)
+	rand.Read(res)
+	return res
 }
