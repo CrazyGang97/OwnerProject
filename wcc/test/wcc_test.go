@@ -14,9 +14,12 @@ import (
 	"time"
 	"unsafe"
 
+	"code.byted.org/webcast/wcc_codegen/webcast_wcc_gangtest4"
+
 	"code.byted.org/webcast/wccclient/impl/loader/wcc"
 
 	"code.byted.org/webcast/rpcv2_webcast_platform_wcc/kitex_gen/webcast/platform_wcc"
+
 	"code.byted.org/webcast/wccclient"
 )
 
@@ -61,6 +64,17 @@ func Test_Get(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 	fmt.Println(val)
+}
+
+func Test_WccGet(t *testing.T) {
+	//value, err := webcast_wcc_gangtest4.Gang_table_test1.Get(context.Background(), "gang_table_test1_396802")
+	//value, err := webcast_allowlist_core.GetServicePermCheckUpperLimit(context.Background())
+	value, err := webcast_wcc_gangtest4.Default.Get(context.Background(), "gang_table_test1_396802")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	fmt.Println(string(value))
+	time.Sleep(10000 * time.Second)
 }
 
 func Test_CreateConfig(t *testing.T) {
