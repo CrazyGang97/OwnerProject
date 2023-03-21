@@ -184,7 +184,7 @@ func parseOptions(opts ...*Option) (*Option, error) {
 	return opt, nil
 }
 
-func Dail(network, addr string, opts ...*Option) (client *Client, err error) {
+func Dial(network, addr string, opts ...*Option) (client *Client, err error) {
 	opt, err := parseOptions(opts...)
 	if err != nil {
 		return nil, err
