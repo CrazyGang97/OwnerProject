@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"code.byted.org/gopkg/env"
 )
 
 type People struct {
@@ -22,7 +20,7 @@ func Test_1(t *testing.T) {
 }
 
 func Test_2(t *testing.T) {
-	fmt.Println(env.Region())
+	//fmt.Println(env.Region())
 }
 
 func Test_3(t *testing.T) {
