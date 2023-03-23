@@ -2,6 +2,7 @@ package Gang_RPC
 
 import (
 	"Gang_RPC/codec"
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -208,13 +210,24 @@ func dialTimeout(f newClientFunc, network, addr string, opts ...*Option) (client
 		}
 	}()
 	ch := make(chan clientResult)
+	finish := make(chan struct{})
+	defer func() { close(finish) }()
 	go func() {
 		client, err := f(conn, opt)
-		ch <- clientResult{
+		select {
+		case <-finish:
+			close(ch)
+			return
+		case ch <- clientResult{
 			client: client,
 			err:    err,
+		}:
 		}
 	}()
+	if opt.ConnectTimeout == 0 {
+		result := <-ch
+		return result.client, result.err
+	}
 	select {
 	case <-time.After(opt.ConnectTimeout):
 		return nil, fmt.Errorf("rpc client: connect timeout: expect within %s", opt.ConnectTimeout)
@@ -254,4 +267,17 @@ func (client *Client) Call(ctx context.Context, serviceMethod string, args, repl
 	case call := <-call.Done:
 		return call.Error
 	}
+}
+
+func NewHTTPClient(conn net.Conn, opt *Option) (*Client, error) {
+	_, _ = io.WriteString(conn, fmt.Sprintf("CONNECT %s HTTP/1.0\n\n", defaultRPCPath))
+
+	resp, err := http.ReadResponse(bufio.NewReader(conn), &http.Request{Method: "CONNECT"})
+	if err == nil && resp.Status == connected {
+		return NewClient(conn, opt)
+	}
+	if err == nil {
+		err = errors.New("unexpected HTTP response: " + resp.Status)
+	}
+	return nil, err
 }
