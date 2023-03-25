@@ -248,8 +248,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) HandleHTTP() {
 	http.Handle(defaultRPCPath, s)
+	http.Handle(defaultDebugPath, &debugHTTP{s})
 }
 
-func ServeHTTP() {
+func HandleHTTP() {
 	DefaultServer.HandleHTTP()
 }
