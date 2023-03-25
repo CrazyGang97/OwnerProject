@@ -287,7 +287,7 @@ func DialHTTP(network, addr string, opts ...*Option) (*Client, error) {
 	return dialTimeout(NewHTTPClient, network, addr, opts...)
 }
 
-func XDila(rpcAddr string, opts ...*Option) (*Client, error) {
+func XDial(rpcAddr string, opts ...*Option) (*Client, error) {
 	parts := strings.Split(rpcAddr, "@")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("rpc client err: wrong format '%s', expect protocol@addr", rpcAddr)
